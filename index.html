@@ -230,6 +230,10 @@ textarea.in{font-family:var(--f-mono);font-size:12.5px;resize:vertical}
 .fstatus{margin:0;font-size:13.5px;color:var(--ok);font-weight:600;min-height:1.2em}
 .fstatus.err{color:var(--no)}
 .fgrid .field.wide{grid-column:1/-1}
+.field.check{flex-direction:row;align-items:center;gap:8px;align-self:end;min-height:40px}
+.field.check input{width:18px;height:18px;accent-color:var(--accent);margin:0}
+.field.check span{font-size:14px;font-weight:500;color:var(--ink)}
+.fnote.field-label{margin:16px 0 6px;font-size:13px;font-weight:600}
 .seg{display:inline-flex;flex-wrap:wrap;gap:4px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--card);align-self:flex-start}
 .seg label{position:relative;cursor:pointer}
 .seg input{position:absolute;opacity:0;width:1px;height:1px}
@@ -249,7 +253,7 @@ details.sources a{color:var(--accent)}
 <header class="head">
   <div class="wrap head-in">
     <div class="head-text">
-      <p class="eyebrow">Bac francés → universidad española</p>
+      <p class="eyebrow" id="eyebrow">Bac francés → universidad española</p>
       <h1 id="h1">Simulador de nota de admisión</h1>
       <p class="lead">Las notas que ya tienes quedan fijas. Mueve las que faltan para ver la nota <strong>sobre 14</strong> en cada universidad y si llegas a su nota de corte.</p>
     </div>
@@ -304,7 +308,7 @@ details.sources a{color:var(--accent)}
 
     <section class="panel method">
       <h3>Cómo se calcula</h3>
-      <p>La nota del Bac es la media de todas las pruebas, cada una con su coeficiente: 100 en total, más los de las opciones. Esa media se pasa a la escala española con la fórmula de su tramo y da la nota de acceso, hasta 10.</p>
+      <p>La nota del Bac es la media de todas las pruebas, cada una con su coeficiente: 100 en total en el Bac general y 148 en el Bac français international (168 con la DNL2), más los de las opciones. Esa media, la misma que aparece en el boletín de notas, se pasa a la escala española con la fórmula de su tramo y da la nota de acceso, hasta 10.</p>
       <div class="tbl-wrap" style="margin-bottom:12px">
         <table>
           <thead><tr><th>Media del Bac</th><th>Fórmula de conversión</th></tr></thead>
@@ -323,9 +327,10 @@ details.sources a{color:var(--accent)}
         <li>SVT cuenta como Biología si la media de enseignement scientifique de Première y Terminale llega a 10.</li>
         <li>Physique-chimie puede reconocerse también como Física, y Mathématiques como Matemáticas II, que puede exigir haber cursado Maths expertes. Confirma con UNEDasiss qué te reconocen y añádelo en la configuración.</li>
         <li>Las notas de corte del listado son las del último curso, en general de la primera adjudicación de julio de 2026, y suelen bajar en las listas siguientes. Las ponderaciones no vienen en el listado: búscalas en la tabla oficial de cada universidad y elígelas en la configuración. Cortes y ponderaciones cambian cada año.</li>
-        <li>Los coeficientes por defecto son los del Bac general de 2027 en adelante. No incluye las pruebas PCE de UNEDasiss.</li>
+        <li>Los coeficientes por defecto son los del Bac de 2027 en adelante. En el BFI, el ACL (20) sustituye a una lengua, la DNL (20) a historia-geografía o a enseignement scientifique, y se suman Connaissance du monde (20) y la DNL2 opcional (20).</li>
+        <li>No incluye las pruebas PCE de UNEDasiss.</li>
       </ul>
-      <p>Fuentes: <a href="https://boe.es/buscar/pdf/2025/BOE-A-2025-10777-consolidado.pdf" target="_blank" rel="noopener">Orden EFD/550/2025 (BOE)</a> · <a href="https://www.letudiant.fr/bac/coefficients-bac-par-matiere-et-serie.html" target="_blank" rel="noopener">coeficientes del Bac 2027</a> · <a href="https://unedasiss.uned.es/" target="_blank" rel="noopener">UNEDasiss</a></p>
+      <p>Fuentes: <a href="https://boe.es/buscar/pdf/2025/BOE-A-2025-10777-consolidado.pdf" target="_blank" rel="noopener">Orden EFD/550/2025 (BOE)</a> · <a href="https://www.letudiant.fr/bac/coefficients-bac-par-matiere-et-serie.html" target="_blank" rel="noopener">coeficientes del Bac 2027</a> · <a href="https://siec.education.fr/candidats/docutheque/download/fiches-de-synthese-reglementaire-session-2027/Fiches%20de%20synth%C3%A8se%20BCG-BTN-Session%202027%20(web)-pdf" target="_blank" rel="noopener">fichas de la sesión 2027, con el BFI (SIEC)</a> · <a href="https://unedasiss.uned.es/" target="_blank" rel="noopener">UNEDasiss</a></p>
     </section>
     <details class="panel sources" id="db-sources"></details>
   </div>
@@ -400,11 +405,9 @@ var BacCalc = (function(){
     });
     var bac = tot > 0 ? r2(pts / tot) : 0;
     var acc = r3(conv(bac));
-    var a = vals.es1, b = vals.es2, esAvg;
-    if (isNum(a) && isNum(b)) esAvg = (a + b) / 2;
-    else if (isNum(a)) esAvg = a;
-    else if (isNum(b)) esAvg = b;
-    else esAvg = 20;
+    /* Media de enseignement scientifique (o de la DNL que la sustituye en el BFI), para la regla de SVT */
+    var esVals = (model.esIds || ['es1', 'es2']).map(function(id){ return vals[id]; }).filter(isNum);
+    var esAvg = esVals.length ? esVals.reduce(function(x, y){ return x + y; }, 0) / esVals.length : 20;
     var unis = model.unis.map(function(u){
       var parts = model.subjects.map(function(s){
         var w = isNum(u.w[s.id]) ? u.w[s.id] : 0;
@@ -501,7 +504,14 @@ var BacCalc = (function(){
     {id:'la2', ph:'t2c', coef:3, lab:'lva', from:'la1'},
     {id:'lb2', ph:'t2c', coef:3, lab:'lvb', from:'lb1'},
     {id:'em2', ph:'t2c', coef:1, lab:'EMC', from:'em1'},
-    {id:'eps', ph:'t2c', coef:6, lab:'Educación física', hint:'Tres evaluaciones en Terminale'}
+    {id:'eps', ph:'t2c', coef:6, lab:'Educación física', hint:'Tres evaluaciones en Terminale'},
+    /* Baccalauréat français international (BFI): evaluaciones específicas de Terminale */
+    {id:'cdm', ph:'t2b', coef:20, lab:'Connaissance du monde', bfi:true, hint:'Oral en la lengua de la sección'},
+    {id:'acle', ph:'t2b', coef:10, lab:'ACL escrito', bfi:true, hint:'Approfondissement culturel et linguistique'},
+    {id:'aclo', ph:'t2b', coef:10, lab:'ACL oral', bfi:true, hint:'Approfondissement culturel et linguistique'},
+    {id:'dnle', ph:'t2b', coef:10, lab:'DNL escrito', bfi:true, hint:'Disciplina no lingüística, en la lengua de la sección'},
+    {id:'dnlo', ph:'t2b', coef:10, lab:'DNL oral', bfi:true, hint:'Disciplina no lingüística, en la lengua de la sección'},
+    {id:'dnl2', ph:'t2b', coef:20, lab:'DNL2', bfi:true, hint:'Evaluación opcional'}
   ];
   var BASE_BY = {};
   BASE.forEach(function(b){ BASE_BY[b.id] = b; });
@@ -510,9 +520,23 @@ var BacCalc = (function(){
     {k:'p1c', t:'Première · evaluación continua'},
     {k:'t2x', t:'Terminale · exámenes finales'},
     {k:'t2c', t:'Terminale · evaluación continua'},
+    {k:'t2b', t:'Terminale · evaluaciones específicas del BFI'},
     {k:'opt', t:'Opciones'}
   ];
   var WEIGHTS = [0, 0.1, 0.2];
+
+  /* Pruebas que cuentan según el tipo de Bac. En el BFI, el ACL sustituye a una de las lenguas (LVA o LVB),
+     la DNL1 sustituye a historia-geografía o a enseignement scientifique, y la DNL2 es opcional. */
+  function isBfi(cfg){ return cfg.bac === 'bfi'; }
+  function activeBase(cfg){
+    if (!isBfi(cfg)) return BASE.filter(function(b){ return !b.bfi; });
+    var drop = {};
+    if (cfg.bfiAcl === 'lb'){ drop.lb1 = drop.lb2 = true; } else { drop.la1 = drop.la2 = true; }
+    if (cfg.bfiDnl === 'es'){ drop.es1 = drop.es2 = true; } else { drop.hg1 = drop.hg2 = true; }
+    if (!cfg.bfiDnl2) drop.dnl2 = true;
+    return BASE.filter(function(b){ return !drop[b.id]; });
+  }
+  function baseTotal(cfg){ return activeBase(cfg).reduce(function(a, b){ return a + (isNum(cfg.coefs[b.id]) ? cfg.coefs[b.id] : b.coef); }, 0); }
 
   /* Utilidades */
   var $ = function(id){ return document.getElementById(id); };
@@ -587,6 +611,13 @@ var BacCalc = (function(){
       case 'spd': return 'Especialidad dejada · ' + specShort(cfg.spd);
       case 'sp1': return specShort(cfg.sp1);
       case 'sp2': return specShort(cfg.sp2);
+      case 'cdm': return 'Connaissance du monde' + (cfg.lva ? ' · ' + cfg.lva : '');
+      case 'acle': case 'aclo':
+        var la = cfg.bfiAcl === 'lb' ? cfg.lvb : cfg.lva;
+        return 'ACL ' + (b.id === 'acle' ? 'escrito' : 'oral') + (la ? ' · ' + la : '');
+      case 'dnle': case 'dnlo':
+        return 'DNL ' + (cfg.bfiDnl === 'es' ? 'Enseignement scientifique' : 'Historia-geografía') + ' · ' + (b.id === 'dnle' ? 'escrito' : 'oral');
+      case 'dnl2': return 'DNL2 (opcional)';
       default: return b.lab;
     }
   }
@@ -619,7 +650,7 @@ var BacCalc = (function(){
   /* Configuraciones de partida */
   function exampleConfig(){
     return {
-      example:true, student:'', lva:'Inglés', lvb:'Español', sp1:'svt', sp2:'pc', spd:'maths',
+      example:true, student:'', bac:'gen', bfiAcl:'la', bfiDnl:'hg', bfiDnl2:false, lva:'Inglés', lvb:'Español', sp1:'svt', sp2:'pc', spd:'maths',
       grades:{fre:14, fro:17, mta:17.5, hg1:17.4, es1:18.2, la1:18.6, lb1:18.9, em1:17.8, spd:17.9},
       coefs:{},
       options:[{id:'lat', name:'Latín', coefP:2, gradeP:18.2, coefT:2, gradeT:null}],
@@ -632,7 +663,7 @@ var BacCalc = (function(){
     };
   }
   function blankConfig(){
-    var c = {example:false, student:'', lva:'', lvb:'', sp1:'svt', sp2:'pc', spd:'maths', grades:{}, coefs:{}, options:[], subjects:[], unis:[]};
+    var c = {example:false, student:'', bac:'gen', bfiAcl:'la', bfiDnl:'hg', bfiDnl2:false, lva:'', lvb:'', sp1:'svt', sp2:'pc', spd:'maths', grades:{}, coefs:{}, options:[], subjects:[], unis:[]};
     c.subjects = suggestions(c);
     for (var i = 0; i < 3; i++) c.unis.push(blankUni());
     return c;
@@ -646,6 +677,7 @@ var BacCalc = (function(){
     var c = {
       example: !!raw.example,
       student: str(raw.student, 60), lva: str(raw.lva, 30), lvb: str(raw.lvb, 30),
+      bac: raw.bac === 'bfi' ? 'bfi' : 'gen', bfiAcl: raw.bfiAcl === 'lb' ? 'lb' : 'la', bfiDnl: raw.bfiDnl === 'es' ? 'es' : 'hg', bfiDnl2: !!raw.bfiDnl2,
       sp1: specOk(raw.sp1, d.sp1), sp2: specOk(raw.sp2, d.sp2), spd: specOk(raw.spd, d.spd),
       grades:{}, coefs:{}, options:[], subjects:[], unis:[]
     };
@@ -719,7 +751,7 @@ var BacCalc = (function(){
   function uniWeight(u, s){ return isNum(u.w[s.id]) ? u.w[s.id] : 0.2; }
   function buildModel(cfg){
     var items = [];
-    BASE.forEach(function(b){
+    activeBase(cfg).forEach(function(b){
       var coef = isNum(cfg.coefs[b.id]) ? cfg.coefs[b.id] : b.coef;
       if (coef <= 0) return;
       items.push({id:b.id, ph:b.ph, from:b.from || null, hint:b.hint || '', coef:coef, label:labelOf(b, cfg), grade: isNum(cfg.grades[b.id]) ? cfg.grades[b.id] : null});
@@ -742,7 +774,8 @@ var BacCalc = (function(){
       subjects.forEach(function(s){ w[s.id] = uniWeight(u, s); });
       unis.push({idx:i, list: u.mode === 'list', name:u.name || ('Universidad ' + (i + 1)), degree:u.degree, detail:u.mode === 'list' ? u.detail : '', cut:u.cut, cutRef: u.mode === 'list' ? u.cutRef : null, cutLbl: cutLabelOf(u), w:w});
     });
-    return {items:items, byId:byId, subjects:subjects, unis:unis};
+    var esIds = (isBfi(cfg) && cfg.bfiDnl === 'es') ? ['dnle', 'dnlo'] : ['es1', 'es2'];
+    return {items:items, byId:byId, subjects:subjects, unis:unis, esIds:esIds, bfi:isBfi(cfg)};
   }
   function avgKnown(model){
     var p = 0, t = 0;
@@ -898,6 +931,7 @@ var BacCalc = (function(){
     refs = {};
     var cfg = state.config;
     $('h1').textContent = cfg.student ? 'Nota de admisión de ' + cfg.student : 'Simulador de nota de admisión';
+    $('eyebrow').textContent = isBfi(cfg) ? 'Bac français international (BFI) → universidad española' : 'Bac francés → universidad española';
     buildPending();
     buildKnown();
     buildUnis();
@@ -1137,12 +1171,27 @@ var BacCalc = (function(){
   function renderForm(){
     var d = draft;
     var h = '';
+    var bfi = isBfi(d);
+    var bacSeg = '<div class="seg" role="radiogroup" aria-label="Tipo de Bac">' +
+      '<label><input type="radio" name="bac-type" id="f-bac-gen" value="gen" data-k="bac"' + (bfi ? '' : ' checked') + '><span>Bac general</span></label>' +
+      '<label><input type="radio" name="bac-type" id="f-bac-bfi" value="bfi" data-k="bac"' + (bfi ? ' checked' : '') + '><span>Bac français international (BFI)</span></label></div>';
+    var bfiBox = '';
+    if (bfi){
+      var opt = function(v, cur, txt){ return '<option value="' + v + '"' + (v === cur ? ' selected' : '') + '>' + esc(txt) + '</option>'; };
+      bfiBox = '<p class="fnote">En el BFI, el ACL sustituye a una de las lenguas y la DNL a historia-geografía o a enseignement scientifique en la evaluación continua. Se suman Connaissance du monde y, si se hace, la DNL2. Lo indica el boletín de notas.</p>' +
+        '<div class="fgrid">' +
+          field('El ACL sustituye a', '<select class="in" id="f-bfi-acl" data-k="bfi:bfiAcl">' + opt('la', d.bfiAcl, 'Lengua A' + (d.lva ? ' · ' + d.lva : '')) + opt('lb', d.bfiAcl, 'Lengua B' + (d.lvb ? ' · ' + d.lvb : '')) + '</select>') +
+          field('La DNL sustituye a', '<select class="in" id="f-bfi-dnl" data-k="bfi:bfiDnl">' + opt('hg', d.bfiDnl, 'Historia-geografía') + opt('es', d.bfiDnl, 'Enseignement scientifique') + '</select>') +
+          '<label class="field check"><input type="checkbox" id="f-bfi-dnl2" data-k="bfi:bfiDnl2"' + (d.bfiDnl2 ? ' checked' : '') + '><span>Hace la DNL2 opcional (coef. 20)</span></label>' +
+        '</div>';
+    }
     h += fsec('fs-alumno', 'Alumno',
       '<div class="fgrid">' +
         field('Nombre (opcional)', textIn('f-student', 'student', d.student, 'Ej.: Lucía')) +
         field('Lengua A (LVA)', textIn('f-lva', 'lva', d.lva, 'Ej.: Inglés')) +
         field('Lengua B (LVB)', textIn('f-lvb', 'lvb', d.lvb, 'Ej.: Español')) +
-      '</div>');
+      '</div>' +
+      '<p class="fnote field-label">Tipo de Bac</p>' + bacSeg + bfiBox);
     h += fsec('fs-esp', 'Especialidades',
       '<p class="fnote">Las dos que se cursan en Terminale y la que se dejó al terminar Première.</p>' +
       '<div class="fgrid">' +
@@ -1151,15 +1200,18 @@ var BacCalc = (function(){
         field('Especialidad dejada en Première', specSel('spd', d.spd)) +
       '</div>');
     h += fsec('fs-notas', 'Notas',
-      '<p class="fnote">Escribe las notas sobre 20 que ya tengas, con coma o punto decimal. <strong>Deja en blanco las que falten:</strong> aparecerán como sliders. Los coeficientes son los del Bac general de 2027 en adelante; cámbialos solo si cambia la normativa.</p>' +
-      PHASES.slice(0, 4).map(function(ph){
-        var rows = BASE.filter(function(b){ return b.ph === ph.k; }).map(function(b){
+      '<p class="fnote">Escribe las notas sobre 20 que ya tengas, con coma o punto decimal. <strong>Deja en blanco las que falten:</strong> aparecerán como sliders. ' +
+        (bfi ? 'Los coeficientes son los del BFI de 2027 en adelante: suman ' + fmtCoef(baseTotal(d)) + ' sin contar las opciones.' : 'Los coeficientes son los del Bac general de 2027 en adelante: suman ' + fmtCoef(baseTotal(d)) + ' sin contar las opciones.') +
+        ' Cámbialos solo si cambia la normativa.</p>' +
+      PHASES.filter(function(ph){ return ph.k !== 'opt'; }).map(function(ph){
+        var rows = activeBase(d).filter(function(b){ return b.ph === ph.k; }).map(function(b){
           var lab = labelOf(b, d);
           var coef = isNum(d.coefs[b.id]) ? d.coefs[b.id] : b.coef;
           return '<tr><th scope="row" data-lab="' + b.id + '">' + esc(lab) + '</th>' +
             '<td class="c-coef">' + numIn('f-coef-' + b.id, 'coef:' + b.id, coef, String(b.coef), 'Coeficiente de ' + lab) + '</td>' +
             '<td class="c-grade">' + numIn('f-grade-' + b.id, 'grade:' + b.id, d.grades[b.id], 'pendiente', 'Nota de ' + lab) + '</td></tr>';
         }).join('');
+        if (!rows) return '';
         return '<div class="tbl-wrap"><table class="gtable"><caption>' + esc(ph.t) + '</caption><thead><tr><th scope="col">Prueba</th><th scope="col" class="c-coef">Coef.</th><th scope="col" class="c-grade">Nota /20</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
       }).join(''));
     var opts = d.options.length ? d.options.map(function(o){
@@ -1262,6 +1314,18 @@ var BacCalc = (function(){
       case 'lva': case 'lvb':
         draft[p[0]] = t.value.slice(0, 30);
         body.querySelectorAll('[data-lab]').forEach(function(th){ th.textContent = labelOf(BASE_BY[th.getAttribute('data-lab')], draft); });
+        break;
+      case 'bac':
+        if (e.type !== 'change' || !t.checked) return;
+        draft.bac = t.value === 'bfi' ? 'bfi' : 'gen';
+        rerender();
+        break;
+      case 'bfi':
+        if (e.type !== 'change') return;
+        if (p[1] === 'bfiDnl2') draft.bfiDnl2 = t.checked;
+        else if (p[1] === 'bfiAcl') draft.bfiAcl = t.value === 'lb' ? 'lb' : 'la';
+        else if (p[1] === 'bfiDnl') draft.bfiDnl = t.value === 'es' ? 'es' : 'hg';
+        rerender();
         break;
       case 'spec':
         if (e.type !== 'change') return;
