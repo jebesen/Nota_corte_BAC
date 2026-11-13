@@ -627,6 +627,8 @@ I18N.add('es', {
   'wiz.step': 'Paso {n} de {m}',
   'wiz.prev': 'Atrás',
   'wiz.next': 'Siguiente',
+  'head.reset': 'Borrar todo',
+  'reset.ask': '¿Borrar todos tus datos de esta calculadora y empezar de cero con la guía? No se puede deshacer.',
   'wiz.bad': 'Hay valores no válidos, marcados en rojo: corrígelos para seguir.'
 });
 I18N.add('fr', {
@@ -662,6 +664,8 @@ I18N.add('fr', {
   'wiz.step': 'Étape {n} sur {m}',
   'wiz.prev': 'Retour',
   'wiz.next': 'Suivant',
+  'head.reset': 'Tout effacer',
+  'reset.ask': 'Effacer toutes vos données de ce simulateur et recommencer avec le guide ? Cette action est irréversible.',
   'wiz.bad': 'Certaines valeurs, en rouge, ne sont pas valides : corrigez-les pour continuer.'
 });
 

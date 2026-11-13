@@ -638,6 +638,13 @@
   $('print-btn').addEventListener('click', function(){ buildPrint(); window.print(); });
   window.addEventListener('beforeprint', buildPrint);
   $('example-start').addEventListener('click', function(){ startWizard(); });
+  /* Borrar todo: se eliminan los datos y la marca de la guía, y se recarga como en la primera visita */
+  $('reset-btn').addEventListener('click', function(){
+    if (!window.confirm(t('reset.ask'))) return;
+    if (persistTimer){ clearTimeout(persistTimer); persistTimer = null; }
+    try { localStorage.removeItem(KEY); localStorage.removeItem(WIZ_KEY); } catch (e) {}
+    location.replace(location.pathname + location.search);
+  });
   $('unis').addEventListener('click', function(e){
     var b = e.target.closest('[data-open]');
     if (b) openCfg(b.getAttribute('data-open'));
