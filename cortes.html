@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Notas de corte · universidades públicas españolas</title>
+<meta name="description" content="Notas de corte de todos los grados de las universidades públicas españolas, ordenadas de mayor a menor, con filtros por estudios, universidad y comunidad.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2a46c8">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="cortes" data-title="cuts.doc" data-desc="cuts.desc">
+
+<header class="head">
+  <div class="wrap head-in">
+    <div class="topbar" id="topbar"></div>
+    <div class="head-text">
+      <p class="eyebrow" data-i18n="cuts.eyebrow">Universidades públicas españolas</p>
+      <h1 data-i18n="cuts.title">Notas de corte</h1>
+      <p class="lead" data-i18n="cuts.lead">Todos los grados del listado, de mayor a menor nota de corte (sobre 14). Filtra por estudios, universidad o comunidad.</p>
+      <p class="data-info" id="data-info"></p>
+    </div>
+  </div>
+</header>
+
+<main class="wrap cuts-main">
+  <section class="panel cuts-filters" aria-labelledby="cf-title">
+    <h2 class="sr-file" id="cf-title" data-i18n="cuts.filters">Filtros</h2>
+    <div class="fgrid">
+      <label class="field wide"><span data-i18n="cuts.f.deg">Estudios</span>
+        <input class="in" type="search" id="f-deg" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" data-i18n-ph="cuts.f.deg.ph" placeholder="Ej.: medicina, enfermería, ingeniería…"></label>
+      <label class="field"><span data-i18n="cuts.f.com">Comunidad</span><select class="in" id="f-com"></select></label>
+      <label class="field"><span data-i18n="cuts.f.uni">Universidad</span><select class="in" id="f-uni"></select></label>
+    </div>
+    <div class="cuts-opts">
+      <label class="field check"><input type="checkbox" id="f-nocut"><span data-i18n="cuts.f.nocut">Incluir grados sin nota de corte</span></label>
+      <button type="button" class="btn small" id="f-reset" data-i18n="cuts.reset">Quitar filtros</button>
+    </div>
+  </section>
+
+  <p class="cuts-count" id="cuts-count" aria-live="polite"></p>
+  <div class="panel cuts-tablewrap">
+    <table class="cuts-table">
+      <thead><tr>
+        <th scope="col" class="r" data-i18n="cuts.col.cut">Nota de corte</th>
+        <th scope="col" data-i18n="cuts.col.deg">Grado</th>
+        <th scope="col" data-i18n="cuts.col.uni">Universidad y centro</th>
+        <th scope="col" data-i18n="cuts.col.com">Comunidad</th>
+      </tr></thead>
+      <tbody id="cuts-body"></tbody>
+    </table>
+  </div>
+  <div class="actions"><button type="button" class="btn" id="cuts-more" hidden></button></div>
+  <p class="foot-note" data-i18n="cuts.note">Las notas de corte son, salvo que se indique otra cosa, las de la primera adjudicación de julio de 2026, y suelen bajar en las listas siguientes. «Sin corte» significa que entraron todos los que lo pidieron (5,000). Comprueba siempre los datos oficiales de cada universidad.</p>
+</main>
+
+<footer class="wrap site-foot" id="site-foot"></footer>
+
+<script src="js/data-pau.js"></script>
+<script src="js/common.js"></script>
+<script src="js/unisearch.js"></script>
+<script src="js/cortes.js"></script>
+<script data-goatcounter="https://jebesen.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

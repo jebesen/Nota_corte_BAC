@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Simulador Bac España</title>
+<meta name="description" content="Calcula la nota de admisión a la universidad española (sobre 14) con el Bac francés y compárala con las notas de corte.">
+<link rel="alternate" hreflang="es" href="?lang=es">
+<link rel="alternate" hreflang="fr" href="?lang=fr">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2a46c8">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="bac" data-title="doc.title" data-desc="doc.desc">
+
+<header class="head">
+  <div class="wrap head-in">
+    <div class="topbar" id="topbar"></div>
+    <div class="head-text">
+      <p class="eyebrow" id="eyebrow">Bac francés → universidad española</p>
+      <h1 id="h1">Simulador de nota de admisión</h1>
+      <p class="lead" data-i18n-html="head.lead">Las notas que ya tienes quedan fijas. Mueve las que faltan para ver la nota <strong>sobre 14</strong> en cada universidad y si llegas a su nota de corte.</p>
+      <p class="data-info" id="data-info"></p>
+    </div>
+    <div class="head-actions">
+      <button class="btn primary" id="open-cfg" type="button" data-i18n="head.cfg">Configurar datos</button>
+      <button class="btn" id="share-btn" type="button" data-i18n="head.share">Compartir</button>
+      <button class="btn" id="print-btn" type="button" data-i18n="head.print">Imprimir / PDF</button>
+    </div>
+  </div>
+</header>
+
+<div class="mini" id="mini" hidden>
+  <div class="wrap mini-in"><b id="mini-score">–</b><span id="mini-reach"></span></div>
+</div>
+
+<main class="wrap grid">
+  <aside class="results" aria-live="polite">
+    <section class="panel" id="score-card">
+      <p class="score-label" id="score-label">Nota de admisión</p>
+      <div class="score" id="score-box"><b id="score">–</b><span id="score-unit">/ 14</span></div>
+      <p class="reach" id="reach"></p>
+      <p class="scenario" id="scenario" hidden><span id="scenario-txt"></span><button type="button" class="link-btn" id="restore-top" data-i18n="score.restore">Restaurar notas reales</button></p>
+      <dl class="calc">
+        <dt><span data-i18n="calc.bac">Media del Bac</span> <span class="mention" id="mention"></span></dt><dd id="c-bac"></dd>
+        <dt data-i18n="calc.acc">Nota de acceso (Bac pasado a /10)</dt><dd id="c-acc"></dd>
+      </dl>
+      <p class="warn" id="warn" hidden></p>
+    </section>
+    <div class="example-note" id="example-note" hidden><span data-i18n="example.note">Estás viendo datos de ejemplo. Pon los tuyos en «Configurar datos».</span> <button type="button" class="btn small primary" id="example-start" data-i18n="example.start">Empezar con mis datos</button></div>
+    <p class="foot-note" id="uni-order" data-i18n="uni.order" hidden>Ordenadas de más a menos margen sobre la nota de corte.</p>
+    <div class="unis" id="unis"></div>
+    <p class="foot-note" data-i18n="results.foot">Las notas de corte cambian cada año y suelen bajar en las listas que siguen a la primera.</p>
+  </aside>
+
+  <div class="inputs">
+    <section class="phase" id="pending-sec">
+      <div>
+        <h2 class="sec-title" data-i18n="pending.title">Notas por llegar</h2>
+        <p class="sec-sub" id="pending-sub"></p>
+      </div>
+      <div id="pending-groups" class="stack"></div>
+      <div class="actions" id="pending-actions"><button class="btn" id="reset-sim" type="button" data-i18n="pending.reset">Volver a la estimación inicial</button></div>
+    </section>
+
+    <section class="phase" id="known-sec">
+      <div class="phase-head">
+        <div>
+          <h2 class="sec-title" data-i18n="known.title">Notas ya obtenidas</h2>
+          <p class="sec-sub" id="known-sub"></p>
+        </div>
+        <label class="switch" id="scen-switch"><input type="checkbox" id="scen-toggle"><span data-i18n="known.switch">Probar otros escenarios</span></label>
+      </div>
+      <div id="known-groups" class="stack"></div>
+      <div class="actions" id="known-actions" hidden><button class="btn" id="reset-scen" type="button" data-i18n="known.reset">Restaurar las notas reales</button></div>
+    </section>
+
+    <section class="panel method" id="method"></section>
+    <details class="panel sources" id="db-sources"></details>
+  </div>
+  <section class="print-sheet" id="print-sheet" aria-hidden="true"></section>
+</main>
+
+<footer class="wrap site-foot" id="site-foot"></footer>
+
+<dialog class="sheet" id="cfg" aria-labelledby="cfg-title">
+  <header class="sheet-head">
+    <div><p class="eyebrow" data-i18n="cfg.eyebrow">Configuración</p><h2 id="cfg-title" data-i18n="cfg.title">Datos del alumno</h2></div>
+    <button type="button" class="icon-btn" data-act="cancel" data-i18n-aria="cfg.close" aria-label="Cerrar sin guardar">×</button>
+  </header>
+  <nav class="sheet-nav" data-i18n-aria="cfg.nav" aria-label="Secciones de la configuración">
+    <button type="button" class="chip" data-act="nav" data-target="fs-alumno" data-i18n="nav.alumno">Alumno</button>
+    <button type="button" class="chip" data-act="nav" data-target="fs-esp" data-i18n="nav.esp">Especialidades</button>
+    <button type="button" class="chip" data-act="nav" data-target="fs-notas" data-i18n="nav.notas">Notas</button>
+    <button type="button" class="chip" data-act="nav" data-target="fs-opc" data-i18n="nav.opc">Opciones</button>
+    <button type="button" class="chip" data-act="nav" data-target="fs-asig" data-i18n="nav.asig">Asignaturas en España</button>
+    <button type="button" class="chip" data-act="nav" data-target="fs-unis" data-i18n="nav.unis">Universidades</button>
+    <button type="button" class="chip" data-act="nav" data-target="fs-datos" data-i18n="nav.datos">Guardar y compartir</button>
+  </nav>
+  <div class="sheet-body" id="cfg-body"></div>
+  <footer class="sheet-foot">
+    <p class="foot-msg" id="cfg-msg" role="alert"></p>
+    <button type="button" class="btn" data-act="cancel" data-i18n="cfg.cancel">Cancelar</button>
+    <button type="button" class="btn" data-act="wiz-prev" data-i18n="wiz.prev" hidden>Atrás</button>
+    <button type="button" class="btn primary" data-act="wiz-next" data-i18n="wiz.next" hidden>Siguiente</button>
+    <button type="button" class="btn primary" data-act="save" data-i18n="cfg.save">Guardar y ver</button>
+  </footer>
+</dialog>
+
+<script src="js/data-bac.js"></script>
+<script src="js/common.js"></script>
+<script src="js/i18n-bac.js"></script>
+<script src="js/weights.js"></script>
+<script src="js/unisearch.js"></script>
+<script src="js/calc-bac.js"></script>
+<script src="js/app-bac.js"></script>
+<script data-goatcounter="https://jebesen.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

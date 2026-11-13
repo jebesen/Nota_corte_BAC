@@ -2,7 +2,6 @@
   'use strict';
   var C = BacCalc, isNum = C.isNum, t = I18N.t;
   var KEY = 'simulador-bac-espana-v1';
-  var LANG_KEY = 'simulador-bac-lang';
   var TOP = (function(){ try { return window.self === window.top; } catch (e) { return false; } })();
 
   /* Asignaturas españolas que pueden salir del Bac (claves del listado de ponderaciones) */
@@ -109,71 +108,11 @@
     return w;
   }
 
-  /* Listado de universidades (js/data.js) */
-  var DB = (function(){
-    var d = window.UNIDB;
-    if (d && Array.isArray(d.unis) && Array.isArray(d.rows)) return d;
-    return {unis:[], rows:[]};
-  })();
-  var ROWS = [], ROW_BY = {}, DEG = {};
-  DB.rows.forEach(function(r){
-    var u = DB.unis[r[0]];
-    if (!u || !r[1]) return;
-    var row = {u:u, degree:r[1], center:r[2] || '', campus:r[3] || '', group:r[4] || '', cut: isNum(r[5]) ? r[5] : null};
-    row.key = [u.code, row.degree, row.center, row.campus, row.group].join('|');
-    if (ROW_BY[row.key]) return;
-    row.nd = normKey(row.degree);
-    /* Texto en el que se busca: carrera, universidad, siglas, centro, campus, grupo y comunidad */
-    row.hay = ' ' + normKey([row.degree, u.name, u.code, row.center, row.campus, row.group, u.community].join(' ')) + ' ';
-    /* Sin la comunidad: lo que coincide aquí (ciudad, universidad) pesa más que la comunidad */
-    row.hay2 = ' ' + normKey([u.name, u.code, row.center, row.campus].join(' ')) + ' ';
-    ROWS.push(row); ROW_BY[row.key] = row;
-    if (!DEG[row.nd]) DEG[row.nd] = {name:row.degree, rows:[]};
-    DEG[row.nd].rows.push(row);
-  });
-  ROWS.sort(function(a, b){
-    return a.degree.localeCompare(b.degree, 'es') || a.u.name.localeCompare(b.u.name, 'es') || (a.campus + a.center + a.group).localeCompare(b.campus + b.center + b.group, 'es');
-  });
-  ROWS.forEach(function(r, i){ r.ord = i; });
-  var HAS_DB = ROWS.length > 0;
-
-  function placeParts(r){
-    var p = [];
-    if (r.center) p.push(r.center);
-    if (r.campus && r.center.indexOf(r.campus) < 0) p.push(r.campus);
-    return p;
-  }
-  function cutText(c){ return !isNum(c) ? t('cut.unknown') : c <= 5 ? t('cut.none') : fmt(c, 3); }
-  function detailOf(r){ var p = placeParts(r); if (r.group) p.push(t('detail.group', {g:r.group})); return p.join(' · '); }
-  function cutLabelOf(u){ var r = u.mode === 'list' ? ROW_BY[u.row] : null; return r ? I18N.ck(r.u.ck || '1.ª adjudicación 2026') : ''; }
-
-  /* Búsqueda de carreras: todas las palabras deben aparecer (sin acentos; en francés se traducen algunas) */
-  function searchRows(q){
-    var toks = normKey(q).split(' ').filter(function(x){ return x.length > 0; });
-    if (!toks.length) return [];
-    var alts = toks.map(function(tk){ return I18N.synonyms(tk); });
-    var out = [];
-    for (var i = 0; i < ROWS.length; i++){
-      var r = ROWS[i], ok = true, score = 0;
-      for (var j = 0; j < alts.length && ok; j++){
-        var hit = false;
-        for (var a = 0; a < alts[j].length; a++){
-          var s = alts[j][a];
-          if (r.hay.indexOf(' ' + s) >= 0){
-            hit = true;
-            if (r.nd.indexOf(s) >= 0) score -= (r.nd.indexOf(s) === 0 ? 6 : 4);
-            else if (r.hay2.indexOf(' ' + s) >= 0) score -= 2;
-            break;
-          }
-          if (s.length >= 4 && r.hay.indexOf(s) >= 0){ hit = true; break; }
-        }
-        ok = hit;
-      }
-      if (ok) out.push({r:r, s:score});
-    }
-    out.sort(function(x, y){ return x.s - y.s || x.r.ord - y.r.ord; });
-    return out.map(function(x){ return x.r; });
-  }
+  /* Listado de universidades (js/data-bac.js) y buscador común (js/unisearch.js) */
+  var US = UniSearch(window.UNIDB);
+  var DB = US.DB, ROW_BY = US.ROW_BY, HAS_DB = US.HAS_DB;
+  var placeParts = US.placeParts, cutText = US.cutText, detailOf = US.detailOf;
+  function cutLabelOf(u){ return u.mode === 'list' ? US.cutLabel(ROW_BY[u.row]) : ''; }
 
   function labelOf(b, cfg){
     switch (b.id){
@@ -210,8 +149,7 @@
     u.cut = r.cut; u.cutRef = r.cut; u.wl = null;
   }
   function exampleUni(code, degree, fb){
-    var u = blankUni(), d = DEG[normKey(degree)];
-    var r = d && d.rows.filter(function(x){ return x.u.code === code; })[0];
+    var u = blankUni(), r = US.findRow(code, degree);
     if (r){ applyRow(u, r); return u; }
     u.mode = 'manual'; u.name = fb.name; u.degree = degree; u.cut = fb.cut; u.w = {bio:0.2, qui:0.2};
     return u;
@@ -303,9 +241,11 @@
     if (o && typeof o === 'object') Object.keys(o).forEach(function(k){ if (isNum(o[k])) out[k] = clamp20(o[k]); });
     return out;
   }
+  var firstVisit = false;
   function load(){
     try {
       var raw = JSON.parse(localStorage.getItem(KEY) || 'null');
+      firstVisit = !(raw && raw.config);
       if (raw && raw.config){
         state.config = normalize(raw.config);
         state.sim = numMap(raw.sim);
@@ -330,7 +270,15 @@
   /* Modelo a partir de la configuración */
   function srcSpec(cfg, src){ return src === 'sp1' ? cfg.sp1 : src === 'sp2' ? cfg.sp2 : src === 'spd' ? cfg.spd : null; }
   /* La ponderación la indica siempre el usuario; por defecto, 0,2 */
-  function uniWeight(u, s){ return isNum(u.w[s.id]) ? u.w[s.id] : 0.2; }
+  /* Ponderación: la que elija el usuario; si no, la precargada del grado (js/weights.js); si no, 0,2 */
+  function uniWeight(u, s){
+    if (isNum(u.w[s.id])) return u.w[s.id];
+    if (u.mode === 'list'){
+      var pw = US.prefillWeight(ROW_BY[u.row], s.key === 'len' ? 'len1' : s.key);
+      if (pw !== null) return pw;
+    }
+    return 0.2;
+  }
   function buildModel(cfg){
     var items = [];
     activeBase(cfg).forEach(function(b){
@@ -386,47 +334,7 @@
     return v;
   }
 
-  /* Textos fijos de la página */
-  var FLAGS = {
-    es: '<svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#c60b1e"/><rect y="5" width="30" height="10" fill="#ffc400"/></svg>',
-    fr: '<svg viewBox="0 0 30 20" aria-hidden="true"><rect width="10" height="20" fill="#0055a4"/><rect x="10" width="10" height="20" fill="#fff"/><rect x="20" width="10" height="20" fill="#ef4135"/></svg>'
-  };
-  function applyStatic(){
-    var l = I18N.getLang();
-    document.documentElement.lang = l;
-    document.title = t('doc.title');
-    var md = document.querySelector('meta[name="description"]');
-    if (md) md.setAttribute('content', t('doc.desc'));
-    document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = t(el.getAttribute('data-i18n')); });
-    document.querySelectorAll('[data-i18n-html]').forEach(function(el){ el.innerHTML = t(el.getAttribute('data-i18n-html')); });
-    document.querySelectorAll('[data-i18n-aria]').forEach(function(el){ el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria'))); });
-    $('method').innerHTML = I18N.method();
-    var box = $('lang');
-    box.setAttribute('aria-label', t('lang.group'));
-    box.innerHTML = ['es', 'fr'].map(function(k){
-      return '<button type="button" class="flag" data-lang="' + k + '" lang="' + k + '" aria-pressed="' + (k === l) + '" title="' + esc(t('lang.' + k)) + '">' + FLAGS[k] + '<span>' + k.toUpperCase() + '</span></button>';
-    }).join('');
-  }
-  function pickLang(){
-    var q = null;
-    try { q = new URLSearchParams(location.search).get('lang'); } catch (e) {}
-    if (q === 'es' || q === 'fr') return q;
-    try { var s = localStorage.getItem(LANG_KEY); if (s === 'es' || s === 'fr') return s; } catch (e) {}
-    var nav = (navigator.languages && navigator.languages[0]) || navigator.language || 'es';
-    return /^fr/i.test(nav) ? 'fr' : 'es';
-  }
-  function setLang(l){
-    I18N.setLang(l);
-    try { localStorage.setItem(LANG_KEY, I18N.getLang()); } catch (e) {}
-    try {
-      var url = new URL(location.href);
-      url.searchParams.set('lang', I18N.getLang());
-      history.replaceState(null, '', url);
-    } catch (e) {}
-    applyStatic();
-    buildSources();
-    buildMain();
-  }
+  Site.onLang(function(){ buildSources(); buildMain(); });
 
   /* Vista principal */
   var M = null, refs = {}, uniRefs = [];
@@ -557,6 +465,7 @@
     var cfg = state.config;
     $('h1').textContent = cfg.student ? t('head.h1.student', {name:cfg.student}) : t('head.h1');
     $('eyebrow').textContent = t(isBfi(cfg) ? 'head.eyebrow.bfi' : 'head.eyebrow.gen');
+    $('example-note').hidden = !cfg.example;
     buildPending();
     buildKnown();
     buildUnis();
@@ -643,8 +552,11 @@
     c.unis.forEach(function(ur, k){
       var u = M.unis[k], R = uniRefs[k];
       if (!R) return;
+      var gap = ur.score - u.cut;
+      var cat = gap >= 0.5 ? 'hol' : gap >= -1e-9 ? 'jus' : gap >= -0.5 ? 'cer' : 'lej';
       R.card.setAttribute('data-ok', ur.ok ? '1' : '0');
-      R.pill.textContent = t(ur.ok ? 'uni.ok' : 'uni.no');
+      R.card.setAttribute('data-cat', cat);
+      R.pill.textContent = t('uni.cat.' + cat);
       R.num.textContent = fmt(ur.score, 3);
       R.gap.textContent = signed(ur.score - u.cut);
       var cutTxt = t('uni.cut', {x:fmt(u.cut, 3)});
@@ -663,6 +575,11 @@
       R.parts.textContent = c.bac < 10 ? t('uni.parts.fail') : t('uni.parts', {x:fmt(c.acc, 3)}) + ur.top.map(function(p){ return ' + ' + p.sub.name + ' ' + fmt(p.v, 3); }).join('');
     });
 
+    /* Carreras ordenadas de más a menos margen sobre la nota de corte */
+    c.unis.map(function(ur, k){ return {k:k, g:ur.score - M.unis[k].cut}; })
+      .sort(function(a, b){ return b.g - a.g || a.k - b.k; })
+      .forEach(function(x, pos){ if (uniRefs[x.k]) uniRefs[x.k].card.style.order = pos; });
+    $('uni-order').hidden = c.unis.length < 2;
     $('mini-score').textContent = $('score').textContent + ' ' + $('score-unit').textContent;
     $('mini-reach').textContent = reachTxt + (state.scenOn && changed ? t('scen.mini') : '');
   }
@@ -673,7 +590,7 @@
     if (!HAS_DB){ box.hidden = true; return; }
     var comms = {};
     DB.unis.forEach(function(u){ (comms[u.community] = comms[u.community] || []).push(u); });
-    var h = '<summary>' + esc(t('src.summary', {n:fmt(ROWS.length, 0), u:DB.unis.length})) + '</summary><p>' + esc(t('src.intro')) + '</p><ul>';
+    var h = '<summary>' + esc(t('src.summary', {n:fmt(US.ROWS.length, 0), u:DB.unis.length})) + '</summary><p>' + esc(t('src.intro')) + '</p><ul>';
     Object.keys(comms).sort(function(a, b){ return a.localeCompare(b, 'es'); }).forEach(function(cm){
       comms[cm].forEach(function(u){
         var links = [];
@@ -704,15 +621,27 @@
     buildKnown(); update(); persist();
   });
   $('open-cfg').addEventListener('click', function(){ openCfg(); });
+  function shareData(){ return {config:normalize(state.config), sim:state.sim}; }
+  $('share-btn').addEventListener('click', function(){ Site.share('bac', shareData()); });
+  function buildPrint(){
+    var vals = currentVals(M);
+    Site.renderPrint({
+      title: t('print.title'),
+      subtitle: [state.config.student, t(isBfi(state.config) ? 'f.bac.bfi' : 'f.bac.gen')].filter(Boolean).join(' · '),
+      groups: PHASES.map(function(ph){
+        return {t:phT(ph), rows: M.items.filter(function(it){ return it.ph === ph; }).map(function(it){
+          return {label:it.label + ' (' + t('coef') + ' ' + fmtCoef(it.coef) + ')', val:fmt(vals[it.id], 1) + ' / 20', est: it.grade === null};
+        })};
+      })
+    });
+  }
+  $('print-btn').addEventListener('click', function(){ buildPrint(); window.print(); });
+  window.addEventListener('beforeprint', buildPrint);
+  $('example-start').addEventListener('click', function(){ startWizard(); });
   $('unis').addEventListener('click', function(e){
     var b = e.target.closest('[data-open]');
     if (b) openCfg(b.getAttribute('data-open'));
   });
-  $('lang').addEventListener('click', function(e){
-    var b = e.target.closest('[data-lang]');
-    if (b && b.getAttribute('data-lang') !== I18N.getLang()) setLang(b.getAttribute('data-lang'));
-  });
-
   var mini = $('mini');
   if ('IntersectionObserver' in window){
     new IntersectionObserver(function(entries){
@@ -756,104 +685,26 @@
       '</select></label>';
   }
 
-  /* Buscador de carrera y universidad (sustituye al antiguo datalist + desplegable) */
-  var MAX_RESULTS = 40;
-  function comboHtml(i, u){
-    var p = 'f-uni-' + i + '-';
-    var q = u._q != null ? u._q : (u.deg || '');
-    return '<div class="combo" data-i="' + i + '">' +
-      '<label class="field wide" for="' + p + 'q"><span>' + esc(t('u.search')) + '</span></label>' +
-      '<input class="in combo-in" type="search" id="' + p + 'q" data-k="uq:' + i + '" value="' + esc(q) + '" placeholder="' + esc(t('u.search.ph')) + '"' +
-      ' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"' +
-      ' role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + p + 'lb">' +
-      '<p class="combo-msg" id="' + p + 'msg" aria-live="polite"></p>' +
-      '<div class="combo-list" id="' + p + 'lb" role="listbox" hidden></div>' +
-    '</div>';
-  }
-  function resultHtml(i, r, n){
-    var place = [r.u.name].concat(placeParts(r)).join(' · ');
-    return '<button type="button" class="opt" role="option" id="f-uni-' + i + '-o' + n + '" data-act="pick-row" data-i="' + i + '" data-key="' + esc(r.key) + '" aria-selected="false">' +
-      '<span class="opt-main"><b>' + esc(r.degree) + '</b>' + (r.group ? ' <span class="opt-grp">' + esc(r.group) + '</span>' : '') + '<span class="opt-place">' + esc(place) + '</span></span>' +
-      '<span class="opt-cut num">' + esc(cutText(r.cut)) + '</span></button>';
-  }
-  function comboRefs(i){
-    var p = 'f-uni-' + i + '-';
-    return {inp:$(p + 'q'), list:$(p + 'lb'), msg:$(p + 'msg')};
-  }
-  function fitList(list){
-    /* Que la lista quepa por encima del teclado del móvil */
-    if (list.hidden) return;
-    var vv = window.visualViewport;
-    var bottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
-    var top = list.getBoundingClientRect().top;
-    list.style.maxHeight = Math.max(150, Math.min(420, bottom - top - 12)) + 'px';
-  }
-  function runSearch(i){
-    var R = comboRefs(i);
-    if (!R.inp) return;
-    var q = R.inp.value;
+  /* Buscador de carrera y universidad: js/unisearch.js */
+  function pickRow(i, r){
     var u = draft.unis[i];
-    if (u) u._q = q;
-    var trimmed = normKey(q);
-    R.inp.removeAttribute('aria-activedescendant');
-    if (trimmed.length < 2){
-      R.list.hidden = true; R.list.innerHTML = '';
-      R.inp.setAttribute('aria-expanded', 'false');
-      R.msg.textContent = t('u.search.hint');
-      return;
-    }
-    var res = searchRows(q);
-    if (!res.length){
-      R.list.hidden = true; R.list.innerHTML = '';
-      R.inp.setAttribute('aria-expanded', 'false');
-      R.msg.textContent = t('u.search.none', {q:q.trim()});
-      return;
-    }
-    var shown = res.slice(0, MAX_RESULTS);
-    R.list.innerHTML = shown.map(function(r, n){ return resultHtml(i, r, n); }).join('');
-    R.list.hidden = false;
-    R.list.scrollTop = 0;
-    R.inp.setAttribute('aria-expanded', 'true');
-    R.msg.textContent = res.length > MAX_RESULTS ? t('u.search.more', {k:MAX_RESULTS, n:res.length}) : t(res.length === 1 ? 'u.search.count.one' : 'u.search.count', {n:res.length});
-    fitList(R.list);
-  }
-  var searchTimer = null;
-  function queueSearch(i){
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(function(){ runSearch(i); }, 90);
-  }
-  function moveActive(i, delta){
-    var R = comboRefs(i);
-    var opts = R.list.querySelectorAll('.opt');
-    if (R.list.hidden || !opts.length) return;
-    var cur = -1;
-    opts.forEach(function(o, n){ if (o.getAttribute('aria-selected') === 'true') cur = n; });
-    var nx = Math.max(0, Math.min(opts.length - 1, cur + delta));
-    if (cur >= 0) opts[cur].setAttribute('aria-selected', 'false');
-    opts[nx].setAttribute('aria-selected', 'true');
-    R.inp.setAttribute('aria-activedescendant', opts[nx].id);
-    opts[nx].scrollIntoView({block:'nearest'});
-  }
-  function pickRow(i, key){
-    var u = draft.unis[i], r = ROW_BY[key];
     if (!u || !r) return;
     draft.example = false;
     applyRow(u, r);
+    u.w = {};
     delete u._q; delete u._edit;
     rerenderUni(i);
     var blk = $('ub-' + i);
     if (blk){
       var focusEl = blk.querySelector('[data-act="change-row"]');
       if (focusEl) focusEl.focus({preventScroll:true});
-      scrollInBody(blk, 'start');
+      US.scrollInBody(blk);
     }
   }
-  /* Desplaza solo el cuerpo del panel (no la página) */
-  function scrollInBody(el, where){
-    var br = body.getBoundingClientRect(), er = el.getBoundingClientRect();
-    var delta = where === 'start' ? er.top - br.top - 8 : 0;
-    if (Math.abs(delta) > 2) body.scrollTop += delta;
-  }
+  US.attach(body, {
+    onPick: pickRow,
+    onQuery: function(i, q){ if (draft && draft.unis[i]) draft.unis[i]._q = q; }
+  });
 
   function uniBlock(d, u, i){
     var p = 'f-uni-' + i + '-';
@@ -864,17 +715,15 @@
     if (u.mode === 'list'){
       var rr = ROW_BY[u.row];
       if (!rr || u._edit){
-        h += comboHtml(i, u);
+        h += US.comboHtml(i, u._q != null ? u._q : (u.deg || ''));
         if (rr) h += '<div class="brow"><button type="button" class="btn small" data-act="keep-row" data-i="' + i + '">' + esc(t('cfg.cancel')) + '</button></div>';
       } else {
-        var place = [rr.u.name].concat(placeParts(rr)).join(' · ');
-        h += '<div class="picked"><div class="picked-txt"><b>' + esc(rr.degree) + (rr.group ? ' · ' + esc(rr.group) : '') + '</b><span>' + esc(place) + '</span><span class="picked-cm">' + esc(rr.u.community) + '</span></div>' +
-          '<button type="button" class="btn small" data-act="change-row" data-i="' + i + '">' + esc(t('u.change')) + '</button></div>';
+        h += US.pickedHtml(i, rr);
         h += '<div class="fgrid">' + field(t('u.cut'), numIn(p + 'cut', 'uni:' + i + ':cut', u.cut, isNum(u.cutRef) ? showNum(u.cutRef) : '')) + '</div>';
         if (!isNum(rr.cut)) h += '<p class="fnote warn-note">' + esc(t('u.cut.missing')) + '</p>';
         else h += '<p class="fnote">' + esc(t('u.cut.from', {lbl:cutLabelOf(u)})) + (isNum(u.cutRef) ? esc(': ' + (u.cutRef <= 5 ? t('u.cut.none5') : fmt(u.cutRef, 3))) : '') + esc(t('u.cut.update')) + '</p>';
         if (d.subjects.length){
-          h += '<p class="fnote">' + esc(t('u.weights')) + '</p>';
+          h += '<p class="fnote">' + (US.prefill(rr) ? US.weightsNote(rr) : esc(t('u.weights'))) + '</p>';
           h += '<div class="wgrid">' + d.subjects.map(function(s){ return weightSel(i, s, u); }).join('') + '</div>';
         }
       }
@@ -895,8 +744,7 @@
     var tmp = document.createElement('div');
     tmp.innerHTML = uniBlock(draft, draft.unis[i], i);
     old.replaceWith(tmp.firstChild);
-    var R = comboRefs(i);
-    if (R.inp) runSearch(i);
+    if (US.refs(i).inp) US.run(i);
   }
 
   function renderForm(){
@@ -982,7 +830,7 @@
       d.unis.map(function(u, i){ return uniBlock(d, u, i); }).join(''));
     h += fsec('fs-datos', t('f.datos'),
       '<p class="fnote">' + esc(t('f.datos.note', {dl: TOP ? t('f.datos.dl') : ''})) + '</p>' +
-      '<div class="brow"><button type="button" class="btn small" data-act="copy">' + esc(t('f.copy')) + '</button>' +
+      '<div class="brow"><button type="button" class="btn small primary" data-act="share-link">' + esc(t('f.sharelink')) + '</button><button type="button" class="btn small" data-act="copy">' + esc(t('f.copy')) + '</button>' +
       (TOP ? '<button type="button" class="btn small" data-act="download">' + esc(t('f.download')) + '</button>' : '') +
       '<label class="btn small">' + esc(t('f.importfile')) + '<input type="file" accept=".json,application/json" class="sr-file" id="f-file"></label></div>' +
       field(t('f.paste'), '<textarea class="in" id="f-paste" rows="3" spellcheck="false"></textarea>') +
@@ -992,7 +840,8 @@
     body.innerHTML = h;
     var fi = $('f-file');
     if (fi) fi.addEventListener('change', onFile);
-    d.unis.forEach(function(u, i){ if (comboRefs(i).inp) runSearch(i); });
+    US.runAll();
+    Wizard.apply();
   }
 
   function rerender(){
@@ -1036,7 +885,7 @@
     var k = el.getAttribute && el.getAttribute('data-k');
     if (!k || !draft) return;
     var p = k.split(':');
-    if (p[0] !== 'uq') draft.example = false;
+    draft.example = false;
     $('cfg-msg').textContent = '';
     switch (p[0]){
       case 'student': draft.student = el.value.slice(0, 60); break;
@@ -1112,9 +961,6 @@
         }
         rerenderUni(+p[1]);
         break;
-      case 'uq':
-        if (e.type === 'input') queueSearch(+p[1]);
-        break;
       case 'uni':
         var u = draft.unis[+p[1]];
         if (!u) return;
@@ -1130,48 +976,6 @@
   }
   body.addEventListener('input', onField);
   body.addEventListener('change', onField);
-
-  /* Teclado y foco del buscador */
-  body.addEventListener('keydown', function(e){
-    var el = e.target;
-    if (!el.classList || !el.classList.contains('combo-in')) return;
-    var i = +el.closest('.combo').getAttribute('data-i');
-    var R = comboRefs(i);
-    if (e.key === 'ArrowDown'){ e.preventDefault(); moveActive(i, 1); }
-    else if (e.key === 'ArrowUp'){ e.preventDefault(); moveActive(i, -1); }
-    else if (e.key === 'Enter'){
-      e.preventDefault();
-      var act = R.list.querySelector('.opt[aria-selected="true"]') || (R.list.querySelectorAll('.opt').length === 1 ? R.list.querySelector('.opt') : null);
-      if (act) pickRow(i, act.getAttribute('data-key'));
-      else el.blur();
-    } else if (e.key === 'Escape' && !R.list.hidden){
-      e.preventDefault(); e.stopPropagation();
-      R.list.hidden = true; R.inp.setAttribute('aria-expanded', 'false');
-    }
-  });
-  body.addEventListener('focusin', function(e){
-    var el = e.target;
-    if (!el.classList || !el.classList.contains('combo-in')) return;
-    var i = +el.closest('.combo').getAttribute('data-i');
-    if (comboRefs(i).list.hidden) runSearch(i);
-    /* En el móvil, sube el buscador arriba del panel para dejar sitio a la lista sobre el teclado */
-    if (window.matchMedia('(max-width: 700px), (pointer: coarse)').matches){
-      setTimeout(function(){
-        if (document.activeElement !== el) return;
-        scrollInBody(el.closest('.combo'), 'start');
-        fitList(comboRefs(i).list);
-      }, 320);
-    }
-  });
-  if (window.visualViewport){
-    window.visualViewport.addEventListener('resize', function(){
-      var ae = document.activeElement;
-      if (ae && ae.classList && ae.classList.contains('combo-in')){
-        var i = +ae.closest('.combo').getAttribute('data-i');
-        fitList(comboRefs(i).list);
-      }
-    });
-  }
 
   function exportText(){
     return JSON.stringify({app:'simulador-bac-espana', v:2, config:normalize(draft || state.config), sim:state.sim}, null, 1);
@@ -1225,6 +1029,7 @@
         break;
       case 'cancel':
         draft = null; importSim = null;
+        Wizard.stop();
         dlg.close();
         break;
       case 'save':
@@ -1234,19 +1039,17 @@
         state.scen = {};
         if (importSim) state.sim = importSim;
         draft = null; importSim = null;
+        Wizard.stop();
         dlg.close();
         buildMain(); persistNow();
         window.scrollTo(0, 0);
-        break;
-      case 'pick-row':
-        pickRow(bi, b.getAttribute('data-key'));
         break;
       case 'change-row':
         if (draft.unis[bi]){
           draft.unis[bi]._edit = true;
           draft.unis[bi]._q = draft.unis[bi].deg || '';
           rerenderUni(bi);
-          var R = comboRefs(bi);
+          var R = US.refs(bi);
           if (R.inp){ R.inp.focus(); try { R.inp.select(); } catch (er) {} }
         }
         break;
@@ -1284,6 +1087,9 @@
         draft.example = false;
         if (draft.unis[bi]) draft.unis[bi] = blankUni();
         rerenderUni(bi);
+        break;
+      case 'share-link':
+        Site.share('bac', {config:normalize(draft), sim:state.sim});
         break;
       case 'copy':
         var txt = exportText();
@@ -1324,7 +1130,21 @@
     }
   });
   /* Esc cierra sin guardar, igual que «Cancelar» */
-  dlg.addEventListener('cancel', function(){ draft = null; importSim = null; });
+  dlg.addEventListener('cancel', function(){ draft = null; importSim = null; Wizard.stop(); });
+
+  /* Primera visita: asistente en tres pasos, desde una configuración en blanco */
+  var WIZ_KEY = 'simulador-bac-wizard-visto';
+  Wizard.setup(dlg, body, [
+    {t:'wiz.b1.t', d:'wiz.b1.d', secs:['fs-alumno', 'fs-esp']},
+    {t:'wiz.b2.t', d:'wiz.b2.d', secs:['fs-notas', 'fs-opc']},
+    {t:'wiz.b3.t', d:'wiz.b3.d', secs:['fs-unis']}
+  ]);
+  function startWizard(){
+    try { localStorage.setItem(WIZ_KEY, '1'); } catch (e) {}
+    draft = blankConfig(); importSim = null;
+    openCfg();
+    Wizard.start();
+  }
   dlg.addEventListener('close', function(){ document.documentElement.classList.remove('lock'); });
 
   function openCfg(section){
@@ -1337,9 +1157,18 @@
     if (section){ var s = $(section); if (s) s.scrollIntoView({block:'start'}); }
   }
 
-  I18N.setLang(pickLang());
-  applyStatic();
+  Site.applyStatic();
   load();
   buildSources();
   buildMain();
+  var sharedOpen = /(?:^|[#&])d=/.test(location.hash);
+  Site.readShared('bac', !firstVisit, function(data){
+    state.config = normalize(data.config);
+    state.sim = numMap(data.sim);
+    state.scen = {}; state.scenOn = false;
+    buildMain(); persistNow();
+  });
+  var wizSeen = false;
+  try { wizSeen = !!localStorage.getItem(WIZ_KEY); } catch (e) {}
+  if (firstVisit && !wizSeen && !sharedOpen) startWizard();
 })();
