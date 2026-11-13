@@ -382,10 +382,40 @@ var Site = (function(){
     if (!box) return;
     var l = I18N.getLang();
     var home = page === 'home' ? '<span></span>' : '<a class="home-link" href="' + href('index.html') + '"><span aria-hidden="true">←</span> ' + esc(t('nav.home')) + '</a>';
-    box.innerHTML = home + '<div class="lang" role="group" aria-label="' + esc(t('lang.group')) + '">' + ['es', 'fr'].map(function(k){
+    box.innerHTML = home + '<div class="bar-right"><button type="button" class="help-btn" data-help-open aria-haspopup="dialog" aria-label="' + esc(t('help.open')) + '" title="' + esc(t('help.open')) + '">?</button><div class="lang" role="group" aria-label="' + esc(t('lang.group')) + '">' + ['es', 'fr'].map(function(k){
       return '<button type="button" class="flag" data-lang="' + k + '" lang="' + k + '" aria-pressed="' + (k === l) + '" title="' + esc(t('lang.' + k)) + '">' + FLAGS[k] + '<span>' + k.toUpperCase() + '</span></button>';
-    }).join('') + '</div>';
+    }).join('') + '</div></div>';
   }
+
+  /* Ayuda: ventana emergente que explica cada calculadora */
+  function helpHtml(){
+    var items = [['pau', 'pau.html'], ['bac', 'bac.html'], ['cortes', 'cortes.html']];
+    var h = '<p class="help-intro">' + esc(t('help.intro')) + '</p>';
+    items.forEach(function(x){
+      var k = 'help.' + x[0], here = x[0] === page;
+      h += '<details class="help-sec"' + (here || (page === 'home' && x[0] === 'pau') ? ' open' : '') + '><summary>' + esc(t(k + '.t')) + (here ? ' <span class="help-here">' + esc(t('help.here')) + '</span>' : '') + '</summary>' +
+        '<h3>' + esc(t('help.what')) + '</h3><p>' + esc(t(k + '.what')) + '</p>' +
+        '<h3>' + esc(t('help.how')) + '</h3><ol>' + t(k + '.steps').split('|').map(function(s){ return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>' +
+        (here ? '' : '<p><a href="' + href(x[1]) + '">' + esc(t('help.go')) + '</a></p>') + '</details>';
+    });
+    return h + '<p class="help-tip">' + esc(t('help.tip')) + '</p>';
+  }
+  function openHelp(){
+    var d = document.getElementById('help-dlg');
+    if (!d){
+      d = document.createElement('dialog');
+      d.id = 'help-dlg'; d.className = 'help-dlg'; d.setAttribute('aria-labelledby', 'help-title');
+      document.body.appendChild(d);
+      d.addEventListener('click', function(e){ if (e.target === d || (e.target.closest && e.target.closest('[data-help-close]'))) d.close(); });
+    }
+    d.innerHTML = '<div class="help-head"><h2 id="help-title">' + esc(t('help.title')) + '</h2><button type="button" class="help-x" data-help-close aria-label="' + esc(t('help.close')) + '">×</button></div>' +
+      '<div class="help-body">' + helpHtml() + '</div>' +
+      '<div class="help-foot"><button type="button" class="btn primary" data-help-close>' + esc(t('help.close')) + '</button></div>';
+    if (!d.open){ if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', ''); }
+  }
+  document.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('[data-help-open]')) openHelp();
+  });
   function renderFoot(){
     var f = document.getElementById('site-foot');
     if (!f) return;
@@ -411,6 +441,8 @@ var Site = (function(){
     if (m) m.innerHTML = I18N.method();
     renderBar();
     renderFoot();
+    var hd = document.getElementById('help-dlg');
+    if (hd && hd.open) openHelp();
   }
   function setLang(l){
     I18N.setLang(l);
@@ -667,6 +699,37 @@ I18N.add('fr', {
   'head.reset': 'Tout effacer',
   'reset.ask': 'Effacer toutes vos données de ce simulateur et recommencer avec le guide ? Cette action est irréversible.',
   'wiz.bad': 'Certaines valeurs, en rouge, ne sont pas valides : corrigez-les pour continuer.'
+});
+
+I18N.add('es', {
+  'help.open': 'Ayuda', 'help.close': 'Cerrar', 'help.title': 'Ayuda: ¿cómo funcionan las calculadoras?',
+  'help.intro': 'Esta web te ayuda a saber si tu nota te llega para entrar en la carrera que quieres. La nota de admisión se calcula sobre 14 puntos y se compara con la nota de corte: la del último alumno que entró el año pasado. Aquí tienes qué hace cada página y cómo usarla.',
+  'help.here': '(estás aquí)', 'help.what': '¿Para qué sirve?', 'help.how': 'Cómo se usa, paso a paso', 'help.go': 'Abrir esta página',
+  'help.pau.t': 'Calculadora Bachillerato + PAU',
+  'help.pau.what': 'Es para quien estudia el Bachillerato español y hace la PAU (Prueba de Acceso a la Universidad). Junta tu media de Bachillerato, la nota de la fase de acceso y las asignaturas de la fase de admisión que más cuentan para tu carrera, y calcula tu nota de admisión sobre 14. Después la compara con la nota de corte de hasta tres grados y te dice si entras.',
+  'help.pau.steps': 'Pulsa «Configurar datos» y sigue la guía paso a paso.|Escribe las notas que ya tienes (Bachillerato, PAU…). Las que aún no conoces déjalas vacías: se estiman.|Elige hasta tres carreras y universidades buscándolas por nombre, por ejemplo «medicina valencia».|Mira el resultado: cada opción dice si entras, si llegas justo o cuánto te falta.|Mueve los deslizadores de «Notas por llegar» para probar «¿y si saco un 7 en esta asignatura?». Verás al instante cómo cambia tu nota.|Con «Compartir» o «Imprimir / PDF» puedes enseñar tu simulación a otra persona.',
+  'help.bac.t': 'Calculadora Bac francés',
+  'help.bac.what': 'Es para quien tiene el Baccalauréat francés (Bac general o BFI) y quiere estudiar en España. Convierte la media de tu Bac a la escala española de 0 a 10, suma las asignaturas reconocidas por UNEDasiss que mejoran tu nota y calcula la nota de admisión sobre 14, para compararla con las notas de corte.',
+  'help.bac.steps': 'Pulsa «Configurar datos» y sigue la guía paso a paso.|Introduce la media de tu Bac y las notas de las asignaturas de especialidad que ya conoces.|Las que aún no tienes se estiman: podrás cambiarlas más tarde.|Elige hasta tres carreras y universidades buscándolas por nombre.|Mira si llegas a cada nota de corte y mueve los deslizadores para ver cuánto necesitas sacar en cada asignatura.|Tus datos se guardan solo en tu navegador. Usa «Compartir» para enviarlos a otro dispositivo.',
+  'help.cortes.t': 'Notas de corte',
+  'help.cortes.what': 'Es un listado de las notas de corte de los grados de las universidades públicas españolas, de mayor a menor. No calcula tu nota: sirve para ver qué carreras son más o menos exigentes y descubrir opciones. La lista puede no estar completa.',
+  'help.cortes.steps': 'Escribe una carrera en «Estudios» (por ejemplo «enfermería») para ver solo esos grados.|Si quieres, elige una comunidad autónoma o una universidad concreta.|Cada fila muestra la nota de corte sobre 14, el grado, el centro y la comunidad.|«Sin corte» significa que entraron todos los que lo pidieron.|Pulsa «Quitar filtros» para volver al listado completo.',
+  'help.tip': 'Consejo: las notas de corte cambian cada año y suelen bajar en las listas siguientes. Úsalas como orientación y confirma siempre los datos oficiales de cada universidad.'
+});
+I18N.add('fr', {
+  'help.open': 'Aide', 'help.close': 'Fermer', 'help.title': 'Aide : comment fonctionnent les simulateurs ?',
+  'help.intro': 'Ce site vous aide à savoir si votre note suffit pour entrer dans la formation que vous voulez. La note d’admission se calcule sur 14 points et se compare au seuil d’admission : la note du dernier élève admis l’an dernier. Voici ce que fait chaque page et comment l’utiliser.',
+  'help.here': '(vous êtes ici)', 'help.what': 'À quoi ça sert ?', 'help.how': 'Mode d’emploi, étape par étape', 'help.go': 'Ouvrir cette page',
+  'help.pau.t': 'Simulateur Bachillerato + PAU',
+  'help.pau.what': 'Pour les élèves du Bachillerato espagnol qui passent la PAU (épreuve d’accès à l’université). Il réunit votre moyenne de Bachillerato, la note de la phase d’accès et les matières de la phase d’admission qui comptent le plus pour votre formation, et calcule votre note d’admission sur 14. Il la compare ensuite au seuil de trois formations au maximum et vous dit si vous êtes admis.',
+  'help.pau.steps': 'Cliquez sur « Configurer » et suivez le guide pas à pas.|Saisissez les notes que vous avez déjà (Bachillerato, PAU…). Laissez vides celles que vous ne connaissez pas encore : elles sont estimées.|Choisissez jusqu’à trois formations et universités en les cherchant par leur nom, par exemple « médecine valencia ».|Consultez le résultat : chaque option indique si vous êtes admis, de justesse, ou ce qu’il vous manque.|Déplacez les curseurs de « Notes à venir » pour tester « et si j’avais 7 dans cette matière ? ». Votre note change aussitôt.|Avec « Partager » ou « Imprimer / PDF », vous pouvez montrer votre simulation à quelqu’un.',
+  'help.bac.t': 'Simulateur Bac français',
+  'help.bac.what': 'Pour les titulaires du Baccalauréat français (Bac général ou BFI) qui veulent étudier en Espagne. Il convertit votre moyenne du Bac à l’échelle espagnole de 0 à 10, ajoute les matières reconnues par UNEDasiss qui améliorent votre note, et calcule la note d’admission sur 14 pour la comparer aux seuils.',
+  'help.bac.steps': 'Cliquez sur « Configurer » et suivez le guide pas à pas.|Saisissez votre moyenne du Bac et les notes de spécialité que vous connaissez déjà.|Celles que vous n’avez pas encore sont estimées : vous pourrez les modifier plus tard.|Choisissez jusqu’à trois formations et universités en les cherchant par leur nom.|Regardez si vous atteignez chaque seuil et déplacez les curseurs pour voir la note nécessaire dans chaque matière.|Vos données sont enregistrées uniquement dans votre navigateur. Utilisez « Partager » pour les envoyer vers un autre appareil.',
+  'help.cortes.t': 'Seuils d’admission',
+  'help.cortes.what': 'Une liste des seuils d’admission des formations des universités publiques espagnoles, du plus élevé au plus bas. Elle ne calcule pas votre note : elle sert à voir quelles formations sont les plus ou les moins sélectives et à découvrir des options. La liste peut être incomplète.',
+  'help.cortes.steps': 'Saisissez une formation dans « Formation » (par exemple « infirmier ») pour n’afficher que celles-ci.|Si vous le souhaitez, choisissez une communauté autonome ou une université.|Chaque ligne indique le seuil sur 14, la formation, l’établissement et la communauté.|« Pas de seuil » signifie que tous les candidats ont été admis.|Cliquez sur « Effacer les filtres » pour revenir à la liste complète.',
+  'help.tip': 'Conseil : les seuils changent chaque année et baissent souvent dans les listes suivantes. Utilisez-les comme repère et vérifiez toujours les données officielles de chaque université.'
 });
 
 I18N.add('es', {'nav.cortes': 'Notas de corte', 'home.cuts': 'Ver sólo notas de corte', 'home.cuts.d': 'Todos los grados y universidades públicas, de mayor a menor nota de corte, con filtros.'});

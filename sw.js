@@ -1,6 +1,6 @@
 /* Service worker: la web funciona sin conexión una vez visitada.
    Al publicar cambios, sube VERSION para que los navegadores descarguen los archivos nuevos. */
-var VERSION = 'simuladores-v4';
+var VERSION = 'simuladores-v5';
 var FILES = [
   './', 'index.html', 'bac.html', 'pau.html', 'cortes.html', 'js/cortes.js', 'manifest.webmanifest',
   'css/styles.css',

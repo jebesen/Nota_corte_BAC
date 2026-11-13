@@ -24,6 +24,7 @@ I18N.add('es', {
   'cuts.more': 'Mostrar {k} más (quedan {n})',
   'cuts.nocut': 'sin nota de corte',
   'cuts.free': 'sin corte',
+  'cuts.warn': 'Aviso: es posible que no estén todos los estudios de todas las universidades. Si no encuentras tu carrera, consulta la web oficial de la universidad.',
   'cuts.note': 'Las notas de corte son, salvo que se indique otra cosa, las de la primera adjudicación de julio de 2026, y suelen bajar en las listas siguientes. «Sin corte» significa que entraron todos los que lo pidieron (5,000). Comprueba siempre los datos oficiales de cada universidad.'
 });
 I18N.add('fr', {
@@ -51,6 +52,7 @@ I18N.add('fr', {
   'cuts.more': 'Afficher {k} de plus (il en reste {n})',
   'cuts.nocut': 'seuil inconnu',
   'cuts.free': 'pas de seuil',
+  'cuts.warn': 'Attention : il se peut que toutes les formations de toutes les universités ne figurent pas dans la liste. Si vous ne trouvez pas la vôtre, consultez le site officiel de l’université.',
   'cuts.note': 'Sauf mention contraire, les seuils sont ceux de la première liste d’affectation de juillet 2026 et baissent souvent dans les listes suivantes. « Pas de seuil » signifie que tous les candidats ont été admis (5,000). Vérifiez toujours les données officielles de chaque université.'
 });
 
