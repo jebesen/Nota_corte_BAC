@@ -424,7 +424,7 @@ var Site = (function(){
     }).join(' · ');
     f.innerHTML = '<nav class="foot-nav" aria-label="' + esc(t('nav.site')) + '">' + links + '</nav>' +
       '<p>' + esc(t('foot.disclaimer')) + '</p>' +
-      '<p class="credit">2026-2027 - &copy; - by <a href="nomada@gavama.es">Jesús Benavent</a></p>';
+      '<p class="credit">2026-2027 - &copy; - by Jesús Benavent (nomada@gavama.es)</p>';
   }
   function applyStatic(){
     document.documentElement.lang = I18N.getLang();
