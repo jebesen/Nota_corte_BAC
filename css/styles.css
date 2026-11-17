@@ -301,7 +301,7 @@ details.sources a{color:var(--accent)}
 .choice:hover{border-color:var(--accent);box-shadow:var(--shadow);transform:translateY(-2px)}
 .choice:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .choice-flag svg{width:72px;height:48px;border-radius:6px;box-shadow:0 0 0 1px rgba(0,0,0,.12);display:block}
-.choice h2{margin:0;font-family:var(--f-display);font-size:22px;line-height:1.2}
+.choice h3{margin:0;font-family:var(--f-display);font-size:22px;line-height:1.2}
 .choice-sub{margin:0;font-weight:600;color:var(--accent);font-size:14px}
 .choice-desc{margin:0;color:var(--muted);font-size:14.5px}
 .choice-go{margin-top:auto;align-self:flex-start;font-weight:700;font-size:14px;padding:8px 14px;border-radius:8px;background:var(--accent);color:var(--accent-ink)}
@@ -320,14 +320,19 @@ details.sources a{color:var(--accent)}
 .example-note{margin:0;font-size:13px;color:var(--note-ink);background:var(--note-bg);border:1px solid var(--note-line);border-radius:8px;padding:8px 10px}
 
 /* Página de inicio: acceso al listado de notas de corte */
-.cuts-link{display:flex;align-items:center;gap:16px;margin-top:20px;padding:18px 24px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);text-decoration:none;transition:border-color .2s,box-shadow .2s}
-.cuts-link:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+.cuts-link{display:flex;align-items:center;gap:20px;padding:20px 24px;border:2px solid var(--accent);border-radius:14px;background:var(--accent-soft);color:var(--ink);text-decoration:none;box-shadow:0 1px 2px rgba(20,28,49,.05);transition:box-shadow .2s,transform .2s}
+.cuts-link:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
 .cuts-link:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.cuts-ico{flex:none;width:48px;height:48px;border-radius:10px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
-.cuts-txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.cuts-txt b{font-family:var(--f-display);font-size:19px}
-.cuts-txt span{color:var(--muted);font-size:14px}
-.cuts-go{flex:none;font-size:22px;color:var(--accent);font-weight:700}
+.cuts-ico{flex:none;color:var(--accent);display:block}
+.cuts-ico svg{display:block;border-radius:6px}
+.cuts-txt{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.cuts-txt b{font-family:var(--f-display);font-size:22px;line-height:1.2}
+.cuts-txt span{color:var(--muted);font-size:14.5px}
+.cuts-btn{flex:none;font-weight:700;font-size:14px;padding:8px 14px;border-radius:8px;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
+.home-main section+section{margin-top:32px}
+.step-t{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-family:var(--f-display);font-size:20px;line-height:1.25}
+.step-n{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:15px;font-weight:700}
+@media (max-width:600px){.cuts-link{flex-wrap:wrap}.cuts-txt{flex-basis:calc(100% - 92px)}.cuts-btn{width:100%;text-align:center}}
 
 /* Listado de notas de corte */
 .cuts-main{display:flex;flex-direction:column;gap:14px;padding-block:24px 40px}

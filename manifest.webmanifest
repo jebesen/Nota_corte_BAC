@@ -1,7 +1,7 @@
 {
   "name": "Simulador de nota de admisión · universidad española",
   "short_name": "Nota /14",
-  "description": "Calcula la nota de admisión (sobre 14) con Bachillerato + PAU o con el Bac francés y compárala con las notas de corte.",
+  "description": "Calcula la nota de admisión (sobre 14) con Bachillerato + Prueba de Acceso a la Universidad o con el Bac francés y compárala con las notas de corte.",
   "lang": "es",
   "start_url": "./index.html",
   "scope": "./",
@@ -14,7 +14,7 @@
     {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ],
   "shortcuts": [
-    {"name": "Calculadora PAU", "url": "./pau.html"},
+    {"name": "Calculadora Bachillerato español", "url": "./pau.html"},
     {"name": "Calculadora Bac", "url": "./bac.html"},
     {"name": "Notas de corte", "url": "./cortes.html"}
   ]
