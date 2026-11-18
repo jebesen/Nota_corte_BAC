@@ -87,7 +87,7 @@ I18N.add('es', {
   "f.sp2": "Especialidad 2 (Terminale)",
   "f.spd": "Especialidad dejada en Première",
   "f.notas": "Notas",
-  "f.notas.note": "Escribe las notas sobre 20 que ya tengas, con coma o punto decimal. <strong>Deja en blanco las que falten:</strong> aparecerán como sliders. ",
+  "f.notas.note": "Escribe las notas sobre 20 que ya tengas, con coma o punto decimal. <strong>Deja en blanco las que falten:</strong> aparecerán como sliders. <strong>Notas de Première:</strong> introduce las notas oficiales que consultas en la aplicación Cyclades, no las de los boletines de notas (« Bilan ») de Première. ",
   "f.notas.gen": "Los coeficientes son los del Bac general de 2027 en adelante: suman {x} sin contar las opciones.",
   "f.notas.bfi": "Los coeficientes son los del BFI de 2027 en adelante: suman {x} sin contar las opciones.",
   "f.notas.end": " Cámbialos solo si cambia la normativa.",
@@ -220,7 +220,7 @@ I18N.add('fr', {
   "f.sp2": "Spécialité 2 (Terminale)",
   "f.spd": "Spécialité abandonnée en Première",
   "f.notas": "Notes",
-  "f.notas.note": "Saisissez les notes sur 20 déjà obtenues, avec une virgule ou un point. <strong>Laissez vides celles qui manquent :</strong> elles apparaîtront sous forme de curseurs. ",
+  "f.notas.note": "Saisissez les notes sur 20 déjà obtenues, avec une virgule ou un point. <strong>Laissez vides celles qui manquent :</strong> elles apparaîtront sous forme de curseurs. <strong>Notes de Première :</strong> saisissez les notes officielles consultables dans l’application Cyclades, et non celles des bulletins de notes (« Bilan ») de Première. ",
   "f.notas.gen": "Les coefficients sont ceux du Bac général à partir de 2027 : ils totalisent {x} sans compter les options.",
   "f.notas.bfi": "Les coefficients sont ceux du BFI à partir de 2027 : ils totalisent {x} sans compter les options.",
   "f.notas.end": " Ne les modifiez que si la réglementation change.",
@@ -272,7 +272,7 @@ I18N.add('es', {
   'wiz.b1.t': 'Tu Bac',
   'wiz.b1.d': 'Elige el tipo de Bac y tus especialidades. Con eso preparamos la lista de pruebas y las asignaturas que cuentan en España.',
   'wiz.b2.t': 'Tus notas',
-  'wiz.b2.d': 'Escribe las notas que ya tienes, sobre 20. Deja en blanco las que aún no sabes: luego podrás moverlas con los sliders.',
+  'wiz.b2.d': 'Escribe las notas que ya tienes, sobre 20. Deja en blanco las que aún no sabes: luego podrás moverlas con los sliders. Las de Première deben ser las oficiales de Cyclades, no las de los boletines (Bilan).',
   'wiz.b3.t': 'Tus carreras',
   'wiz.b3.d': 'Busca hasta tres carreras y universidades. La nota de corte y, en los grados más buscados, las ponderaciones se rellenan solas.'
 });
@@ -281,7 +281,7 @@ I18N.add('fr', {
   'wiz.b1.t': 'Votre Bac',
   'wiz.b1.d': 'Choisissez le type de Bac et vos spécialités. Cela permet de préparer la liste des épreuves et les matières qui comptent en Espagne.',
   'wiz.b2.t': 'Vos notes',
-  'wiz.b2.d': 'Saisissez les notes déjà obtenues, sur 20. Laissez vides celles que vous ne connaissez pas encore : vous pourrez ensuite les faire varier avec les curseurs.',
+  'wiz.b2.d': 'Saisissez les notes déjà obtenues, sur 20. Laissez vides celles que vous ne connaissez pas encore : vous pourrez ensuite les faire varier avec les curseurs. Pour la Première, ce sont les notes officielles de Cyclades, et non celles des bulletins (Bilan).',
   'wiz.b3.t': 'Vos formations',
   'wiz.b3.d': 'Cherchez jusqu’à trois formations et universités. Le seuil et, pour les formations les plus demandées, les pondérations se remplissent tout seuls.'
 });
